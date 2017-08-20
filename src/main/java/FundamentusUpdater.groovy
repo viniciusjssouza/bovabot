@@ -52,8 +52,8 @@ class FundamentusUpdater {
             def numberFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"))
 
             f.marketValue = new BigDecimal(
-                    numberFormat.parse(this.browser.$(".data\\ w3 .txt").getAt(0).text())
-            )4
+                numberFormat.parse(this.browser.$(".data.w3 .txt").getAt(1).text())
+            )
             f.netAssets = new BigDecimal(
                     numberFormat.parse(
                             this.browser.$("table").getAt(3)
