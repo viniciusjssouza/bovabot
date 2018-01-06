@@ -29,7 +29,7 @@ class DBConnection {
         return result[0]['latest']
     }
 
-    def Optional<FundamentusUpdater.Fundamentus> getFundamentus(company, month, year) {
+    def Optional<Fundamentus> getFundamentus(company, month, year) {
         def monthString = String.format("%d%d", month, year)
         def rows = conn.rows("""
             SELECT * FROM fundamentus
@@ -38,9 +38,10 @@ class DBConnection {
         if (rows.isEmpty()) {
             return Optional.empty()
         } else {
-            FundamentusUpdater.Fundamentus f = new FundamentusUpdater.Fundamentus(company:rows['company'],
+            Fundamentus f = new Fundamentus(company:rows['company'],
                     netAssets: new BigDecimal(rows[0]['netAssets']),
-                    marketValue: new BigDecimal(rows[0]['marketValue'])
+                    marketValue: new BigDecimal(rows[0]['marketValue']),
+                    netRevenue: new BigDecimal(rows[0]['netRevenue'])
             )
             return new Optional(f)
         }

@@ -10,7 +10,10 @@ class Main {
         def companyRepository = new CompanyRepository()
 
         def fundamentusUpdater = new FundamentusUpdater(db, companyRepository.companies)
-        println fundamentusUpdater.update()
+        def fundamentuses = fundamentusUpdater.update()
 
+        println(new AssetsRanking(fundamentuses).asText())
+        println(new RevenueRanking(fundamentuses).asText())
+        println(new MixedRanking(fundamentuses).asText())
     }
 }

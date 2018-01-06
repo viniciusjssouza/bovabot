@@ -177,7 +177,7 @@ class CompanyRepository {
             'UGPA3',
             'USIM5',
             'VAGR3',
-            'VALE5',
+            'VALE3',
             'VIVR3',
             'VIVT4',
             'VLID3',

@@ -24,7 +24,7 @@ class FundamentusUpdater {
     }
 
     List<Fundamentus> update(int rankingSize = 30) {
-        List<Fundamentus> ranking = []
+        List<Fundamentus> result = []
         this.browser = new Browser()
 
         int currentMonth = LocalDate.now().monthValue
@@ -36,12 +36,9 @@ class FundamentusUpdater {
                 f = this.getFundamentusFromWeb(company, currentMonth, currentYear)
             }
             if (f.isPresent())
-                ranking.add(f.get());
+                result.add(f.get());
         }
-        ranking.sort {
-            a,b -> b.successFactor.compareTo(a.successFactor)
-        }
-        return ranking.subList(0, Math.min(ranking.size(), rankingSize))
+        return result
     }
 
     Optional<Fundamentus> getFundamentusFromWeb(String stock, int month, int year) {
@@ -51,50 +48,49 @@ class FundamentusUpdater {
             Fundamentus f = new Fundamentus(company: stock)
             def numberFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"))
 
-            f.marketValue = new BigDecimal(
-                numberFormat.parse(this.browser.$(".data.w3 .txt").getAt(1).text())
-            )
-            f.netAssets = new BigDecimal(
-                    numberFormat.parse(
-                            this.browser.$("table").getAt(3)
-                                    .find(By.cssSelector("tr")).getAt(3)
-                                    .find(By.cssSelector("td")).getAt(3)
-                                    .find(By.cssSelector("span")).text()
-                    )
-            )
-            if (f.marketValue == BigDecimal.ZERO || f.netAssets == BigDecimal.ZERO)
-                throw new IllegalArgumentException("Zero value for stock ${stock}")
+            def marketValueHtml = this.browser.$(".data.w3 .txt").getAt(1).text()
+            f.marketValue = parseNumber(marketValueHtml)
 
-            this.save(f, String.format("%d%d", month, year))
-            return new Optional<Fundamentus>(f)
+            def netAssetsHtml = this.browser.$("table").getAt(3)
+                    .find(By.cssSelector("tr")).getAt(3)
+                    .find(By.cssSelector("td")).getAt(3)
+                    .find(By.cssSelector("span")).text()
+            f.netAssets = parseNumber(netAssetsHtml)
+
+            def netRevenueHtml = this.browser.$("table").getAt(4)
+                    .find(By.cssSelector("tr")).getAt(4)
+                    .find(By.cssSelector("td")).getAt(1)
+                    .find(By.cssSelector("span")).text()
+            f.netRevenue = parseNumber(netRevenueHtml)
+
+            if (f.marketValue == null || f.netAssets == null || f.netRevenue == null) {
+                log.warn("Invalid values found for '${stock}'. It will be skipped")
+                return Optional.empty()
+            } else {
+                this.save(f, String.format("%d%d", month, year))
+                return new Optional<Fundamentus>(f)
+            }
         }catch (Exception e) {
             log.error("Error while getting data for stock ${stock}", e)
             return new Optional<Fundamentus>()
         }
     }
 
-    def save(Fundamentus fundamentus, String month) {
-        log.info("Saving information for stock ${fundamentus.company}")
-        this.dbConnection.connection.executeInsert("""INSERT INTO fundamentus(company, month, marketValue,
-            netAssets) VALUES (?, ?, ?, ?)""", [fundamentus.company, month, fundamentus.marketValue,
-                fundamentus.netAssets])
+    private static def parseNumber(strValue) {
+        def numberFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"))
+        if (strValue != null) {
+            return new BigDecimal(numberFormat.parse(strValue).doubleValue())
+        } else {
+            return null
+        }
     }
 
-    @Canonical
-    static class Fundamentus {
-        String company
-        BigDecimal marketValue;
-        BigDecimal netAssets;
-
-        BigDecimal getSuccessFactor() {
-            return netAssets.div(marketValue)
-        }
-
-        @Override
-        String toString() {
-            def formatter = DecimalFormat.getNumberInstance(Locale.getDefault())
-            return String.format("%s - Valor Mercado: %s \tPatr. Liquido: %s \t Fator: %.2f\n", company,
-                formatter.format(marketValue), formatter.format(netAssets), getSuccessFactor())
-        }
+    def save(Fundamentus fundamentus, String month) {
+        log.info("Saving information for stock ${fundamentus.company}")
+        this.dbConnection.connection.executeInsert(
+        """INSERT INTO fundamentus(company, month, marketValue, netAssets, netRevenue) 
+               VALUES (?, ?, ?, ?, ?)""",
+            [fundamentus.company, month, fundamentus.marketValue, fundamentus.netAssets, fundamentus.netRevenue]
+        )
     }
 }
