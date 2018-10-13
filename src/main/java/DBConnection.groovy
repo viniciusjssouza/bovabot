@@ -13,7 +13,7 @@ class DBConnection {
     def static final CONNECTION_URL = "jdbc:mysql://localhost:3306/bovespa"
     def static final USER_NAME = "bovabot"
     def static final PASSWORD = "griever"
-    def static final DRIVER_NAME = "com.mysql.jdbc.Driver"
+    def static final DRIVER_NAME = "com.mysql.cj.jdbc.Driver"
 
     def private Sql conn;
 
